@@ -8,8 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
-from planning import problems
-from planning import samplers
+import problems
+import samplers
 
 
 class Roadmap(object):

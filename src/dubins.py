@@ -9,7 +9,7 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-from cse478 import utils
+import utils
 import warnings
 
 

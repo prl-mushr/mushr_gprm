@@ -14,12 +14,11 @@ from visualization_msgs.msg import Marker
 from nav_msgs.msg import Path
 from std_msgs.msg import Header
 
-from cse478 import utils
-from control.srv import FollowPath
-from planning import search
-from planning.problems import SE2Problem
-from planning.roadmap import Roadmap
-from planning.samplers import samplers
+import utils
+import search
+from problems import SE2Problem
+from roadmap import Roadmap
+import samplers
 
 
 class PlannerROS:
@@ -64,6 +63,7 @@ class PlannerROS:
         #     self.route_sent = False
         # END SOLUTION
 
+        # TODO: Can this just be replaced with the map subscriber?
         self.permissible_region, self.map_info = utils.get_map("/static_map")
         self.problem = SE2Problem(
             self.permissible_region,
@@ -77,10 +77,12 @@ class PlannerROS:
             "/move_base_simple/goal", PoseStamped, self.get_goal
         )
 
+        # TODO: This should just publish the path, not nodes and vertices
         self.nodes_viz = rospy.Publisher(
             "~vertices", PoseArray, queue_size=1, latch=True
         )
         self.edges_viz = rospy.Publisher("~edges", Marker, queue_size=1, latch=True)
+        # TODO: No more using the controller as a ROS service here
         self.controller = rospy.ServiceProxy("controller/follow_path", FollowPath)
 
         # Load or construct a roadmap

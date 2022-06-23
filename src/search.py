@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 
 from itertools import count
-from cse478.utils import PriorityQueue
+from utils import PriorityQueue
 
 
 # Entries in the PriorityQueue are prioritized in lexicographic order, i.e.  by

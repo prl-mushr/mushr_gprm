@@ -1,7 +1,7 @@
 import numpy as np
 
-from cse478 import utils
-from planning import dubins
+import utils
+import dubins
 
 
 class PlanarProblem(object):
