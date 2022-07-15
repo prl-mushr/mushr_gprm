@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 
 from itertools import count
-from utils import PriorityQueue
+from mushr_gprm.utils import PriorityQueue
 
 
 # Entries in the PriorityQueue are prioritized in lexicographic order, i.e.  by
@@ -34,7 +34,8 @@ def astar(rm, start, goal):
     """
     if start not in rm.graph or goal not in rm.graph:
         msg = "Either start {} or goal {} is not in G"
-        raise nx.NodeNotFound(msg.format(start, goal))
+        raise Exception(msg.format(start, goal))
+        # raise nx.NodeNotFound(msg.format(start, goal))
 
     # expanded is a Boolean array that tracks whether each node has previously
     # been expanded, in order to avoid expanding nodes multiple times.
@@ -93,7 +94,8 @@ def astar(rm, start, goal):
             ncost = entry.cost_to_come + weight
             queue.push(QueueEntry(ncost + h, next(c), neighbor, entry.node, ncost))
             # END SOLUTION
-    raise nx.NetworkXNoPath("Node {} not reachable from {}".format(goal, start))
+    # raise nx.NetworkXNoPath("Node {} not reachable from {}".format(goal, start))
+    raise Exception("Node {} not reachable from {}".format(goal, start))
 
 
 def extract_path(parents, goal):

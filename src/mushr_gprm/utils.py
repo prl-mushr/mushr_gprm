@@ -244,7 +244,7 @@ def points(arr):
     return list(map(point, arr))
 
 
-def get_map(map_topic):
+def get_map(map_msg):
     """Get the map from the map server.
 
     Args:
@@ -257,8 +257,8 @@ def get_map(map_topic):
       map_info: Info about the map, see official docs for more info.
         http://docs.ros.org/noetic/api/nav_msgs/html/msg/MapMetaData.html
     """
-    rospy.wait_for_service(map_topic)
-    map_msg = rospy.ServiceProxy(map_topic, GetMap)().map
+    # rospy.wait_for_service(map_topic)
+    # map_msg = rospy.ServiceProxy(map_topic, GetMap)().map
     # TODO: This will need to work with the MuSHR map server
     array_255 = np.array(map_msg.data).reshape(
         (map_msg.info.height, map_msg.info.width)

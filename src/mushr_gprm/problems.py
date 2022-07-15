@@ -1,7 +1,7 @@
 import numpy as np
 
-import utils
-import dubins
+import mushr_gprm.utils as utils
+import mushr_gprm.dubins as dubins
 
 
 class PlanarProblem(object):

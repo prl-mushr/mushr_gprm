@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
-from src.planner_ros import PlannerROS
+from mushr_gprm.planner_node import PlannerROS
 
 if __name__ == "__main__":
-    rospy.init_node("planner")
+    rospy.init_node("planner", anonymous=True)
 
     PlannerROS(
         num_vertices=rospy.get_param("~num_vertices"),

@@ -11,14 +11,15 @@ import time
 
 from geometry_msgs.msg import PoseStamped, PoseArray, Point
 from visualization_msgs.msg import Marker
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, OccupancyGrid
 from std_msgs.msg import Header
 
-import utils
-import search
-from problems import SE2Problem
-from roadmap import Roadmap
-import samplers
+import mushr_gprm.utils as utils
+import mushr_gprm.search as search
+from mushr_gprm.problems import SE2Problem
+from mushr_gprm.roadmap import Roadmap
+import mushr_gprm.samplers as samplers
+from mushr_gprm.samplers import sampler_selection
 
 
 class PlannerROS:
@@ -63,51 +64,91 @@ class PlannerROS:
         #     self.route_sent = False
         # END SOLUTION
 
-        # TODO: Can this just be replaced with the map subscriber?
-        self.permissible_region, self.map_info = utils.get_map("/static_map")
+        self.map_sub = rospy.Subscriber(
+            rospy.get_param("~map"), OccupancyGrid, self.get_map
+        )
+        
+        self.permissible_region = None
+        self.map_info = None
+        self.rm = None
+        self.car_pose = None
+        self.curvature = curvature
+        self.sampler_type = sampler_type
+        self.cache_roadmap = cache_roadmap
+
+        self.goal_sub = rospy.Subscriber(
+            rospy.get_param("~goal_topic"), PoseStamped, self.get_goal
+        )
+
+        self.start_sub = rospy.Subscriber(
+            rospy.get_param("~start_topic"), PoseStamped, self.get_start
+        )
+
+        # # TODO: This should just publish the path, not nodes and vertices
+        # self.nodes_viz = rospy.Publisher(
+        #     "~vertices", PoseArray, queue_size=1, latch=True
+        # )
+        # self.edges_viz = rospy.Publisher("~edges", Marker, queue_size=1, latch=True)
+        # # TODO: No more using the controller as a ROS service here
+        # self.controller = rospy.ServiceProxy("controller/follow_path", FollowPath)
+        self.path_pub = rospy.Publisher(
+            rospy.get_param("~path_topic"), Path, queue_size=1
+        )
+
+        # # Load or construct a roadmap
+        # sampler = samplers[sampler_type](self.problem.extents)
+        # rospy.loginfo("Constructing roadmap...")
+        # saveto = None
+        # if cache_roadmap:
+        #     saveto = graph_location(
+        #         "se2", sampler_type, num_vertices, connection_radius, curvature
+        #     )
+        #     rospy.loginfo("Cached at: {}".format(saveto))
+        # start_stamp = time.time()
+        # self.rm = Roadmap(
+        #     self.problem,
+        #     sampler,
+        #     num_vertices,
+        #     connection_radius,
+        #     lazy=True,
+        #     saveto=saveto,
+        # )
+        # load_time = time.time() - start_stamp
+        # rospy.loginfo("Roadmap constructed in {:2.2f}s".format(load_time))
+        # rospy.Timer(rospy.Duration(1), lambda x: self.visualize(), oneshot=True)
+        # self.rm.visualize(saveto="graph.png")
+        rospy.loginfo("Complete planner initialization.")
+
+    def get_map(self, msg):
+        self.permissible_region, self.map_info = utils.get_map(msg)
         self.problem = SE2Problem(
             self.permissible_region,
             map_info=self.map_info,
             check_resolution=0.1,
-            curvature=curvature,
+            curvature=self.curvature,
         )
-        self.rm = None
-
-        self.goal_sub = rospy.Subscriber(
-            "/move_base_simple/goal", PoseStamped, self.get_goal
-        )
-
-        # TODO: This should just publish the path, not nodes and vertices
-        self.nodes_viz = rospy.Publisher(
-            "~vertices", PoseArray, queue_size=1, latch=True
-        )
-        self.edges_viz = rospy.Publisher("~edges", Marker, queue_size=1, latch=True)
-        # TODO: No more using the controller as a ROS service here
-        self.controller = rospy.ServiceProxy("controller/follow_path", FollowPath)
-
         # Load or construct a roadmap
-        sampler = samplers[sampler_type](self.problem.extents)
+        sampler = sampler_selection[self.sampler_type](self.problem.extents)
         rospy.loginfo("Constructing roadmap...")
         saveto = None
-        if cache_roadmap:
+        if self.cache_roadmap:
             saveto = graph_location(
-                "se2", sampler_type, num_vertices, connection_radius, curvature
+                "se2", self.sampler_type, self.num_vertices, self.connection_radius, self.curvature
             )
             rospy.loginfo("Cached at: {}".format(saveto))
         start_stamp = time.time()
         self.rm = Roadmap(
             self.problem,
             sampler,
-            num_vertices,
-            connection_radius,
+            self.num_vertices,
+            self.connection_radius,
             lazy=True,
             saveto=saveto,
         )
         load_time = time.time() - start_stamp
         rospy.loginfo("Roadmap constructed in {:2.2f}s".format(load_time))
-        rospy.Timer(rospy.Duration(1), lambda x: self.visualize(), oneshot=True)
-        # self.rm.visualize(saveto="graph.png")
-
+        # rospy.Timer(rospy.Duration(1), lambda x: self.visualize(), oneshot=True)
+    
     def plan_to_goal(self, start, goal):
         """Return a planned path from start to goal."""
         # Add current pose and goal to the planning env
@@ -133,6 +174,7 @@ class PlannerROS:
             rospy.loginfo("Edges evaluated: {}".format(edges_evaluated))
             # self.rm.visualize(vpath=path, saveto="planned_path.png")
         except nx.NetworkXNoPath:
+        # except Exception:
             rospy.loginfo("Failed to find a plan")
             return None
 
@@ -168,15 +210,18 @@ class PlannerROS:
 
     # END SOLUTION
 
+    def get_start(self, msg):
+        """Car pose callback function."""
+        self.car_pose = np.array(utils.pose_to_particle(msg.pose))
+
     def get_goal(self, msg):
         """Goal callback function."""
-        if self.rm is None:
+        if self.rm is None or self.car_pose is None:
             return False
 
         self.goal = np.array(utils.pose_to_particle(msg.pose))
-        start = self._get_car_pose()
 
-        path_states = self.plan_to_goal(start, self.goal)
+        path_states = self.plan_to_goal(self.car_pose, self.goal)
         # BEGIN SOLUTION NO PROMPT
         # if self.multi_goals:
         #     if self.route_sent:
@@ -193,28 +238,28 @@ class PlannerROS:
             return False
         return self.send_path(path_states)
 
-    def _get_car_pose(self):
-        """Return the current vehicle state."""
-        try:
-            transform = self.tl.buffer.lookup_transform(
-                "map", self.tf_prefix + "base_footprint", rospy.Time(0)
-            )
-            # Drop stamp header
-            transform = transform.transform
-            return np.array(
-                [
-                    transform.translation.x,
-                    transform.translation.y,
-                    utils.quaternion_to_angle(transform.rotation),
-                ]
-            )
-        except (
-            tf2_ros.LookupException,
-            tf2_ros.ConnectivityException,
-            tf2_ros.ExtrapolationException,
-        ) as e:
-            rospy.logwarn_throttle(5, e)
-            return None
+    # def _get_car_pose(self):
+    #     """Return the current vehicle state."""
+    #     try:
+    #         transform = self.tl.buffer.lookup_transform(
+    #             "map", self.tf_prefix + "base_footprint", rospy.Time(0)
+    #         )
+    #         # Drop stamp header
+    #         transform = transform.transform
+    #         return np.array(
+    #             [
+    #                 transform.translation.x,
+    #                 transform.translation.y,
+    #                 utils.quaternion_to_angle(transform.rotation),
+    #             ]
+    #         )
+    #     except (
+    #         tf2_ros.LookupException,
+    #         tf2_ros.ConnectivityException,
+    #         tf2_ros.ExtrapolationException,
+    #     ) as e:
+    #         rospy.logwarn_throttle(5, e)
+    #         return None
 
     def send_path(self, path_states):
         """Send a planned path to the controller."""
@@ -229,7 +274,8 @@ class PlannerROS:
             PoseStamped(h, utils.particle_to_pose(state)) for state in path_states
         ]
 
-        return self.controller(path, desired_speed)
+        # return self.controller(path, desired_speed)
+        self.path_pub.publish(path)
 
     def visualize(self):
         """Visualize the nodes and edges of the roadmap."""

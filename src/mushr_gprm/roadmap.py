@@ -8,8 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
-import problems
-import samplers
+import mushr_gprm.problems as problems
+import mushr_gprm.samplers as samplers
 
 
 class Roadmap(object):

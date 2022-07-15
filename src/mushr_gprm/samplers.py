@@ -143,7 +143,7 @@ class RandomSampler(Sampler):
         )
 
 
-samplers = {
+sampler_selection = {
     "halton": HaltonSampler,
     "lattice": LatticeSampler,
     "random": RandomSampler,

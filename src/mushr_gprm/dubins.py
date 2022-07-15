@@ -9,7 +9,7 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-import utils
+import mushr_gprm.utils as utils
 import warnings
 
 
