@@ -170,11 +170,6 @@ class Roadmap(object):
         # Lattice sampler only samples a fixed set of samples. Some of them may
         # be in collision, so they're unusable; pretend we only asked for that
         # many vertices.
-        if isinstance(self.sampler, samplers.LatticeSampler):
-            samples = self.sampler.sample(self.num_vertices)
-            valid = self.problem.check_state_validity(samples)
-            self.num_vertices = valid.sum()
-            return samples[valid, :]
 
         # For other samplers, sample until the target number of collision-free
         # vertices is reached.
@@ -304,63 +299,3 @@ class Roadmap(object):
             edge, _ = self.problem.steer(q1, q2)
             edges.append(edge)
         return np.vstack(edges)
-
-    def visualize(self, show_edges=False, vpath=None, saveto=None):
-        """Visualize the roadmap.
-
-        Args:
-            show_edges: whether the roadmap's edges should be shown
-            vpath: sequence of vertex labels (or None)
-            saveto: path to save roadmap plot (or None)
-        """
-        plt.imshow(
-            self.problem.permissible_region,
-            cmap=plt.cm.gray,
-            aspect="equal",
-            interpolation="none",
-            vmin=0,
-            vmax=1,
-            origin="lower",
-            extent=self.problem.extents.ravel()[:4],
-        )
-
-        if show_edges:
-            edges = []
-            for u, v in self.graph.edges():
-                q1 = self.vertices[u, :]
-                q2 = self.vertices[v, :]
-                edge, _ = self.problem.steer(
-                    q1, q2, resolution=0.1, interpolate_line=False
-                )
-                edges.append(edge[:, :2])
-            edges = matplotlib.collections.LineCollection(
-                edges, colors="#dddddd", zorder=1
-            )
-            plt.gca().add_collection(edges)
-
-        if vpath is not None:
-            qpath = self.compute_qpath(vpath)
-            plt.plot(qpath[:, 0], qpath[:, 1], c="#0000ff", zorder=1)
-
-        plt.scatter(self.vertices[:, 0], self.vertices[:, 1], c="k", zorder=2)
-        if self.start is not None:
-            plt.scatter(
-                self.vertices[self.start, 0],
-                self.vertices[self.start, 1],
-                c="g",
-                zorder=3,
-            )
-        if self.goal is not None:
-            plt.scatter(
-                self.vertices[self.goal, 0],
-                self.vertices[self.goal, 1],
-                c="r",
-                zorder=3,
-            )
-        plt.xlim(self.problem.extents[0, :])
-        plt.ylim(self.problem.extents[1, :])
-
-        if saveto is not None:
-            plt.savefig(saveto, bbox_inches="tight")
-            print("Saved graph image to", saveto)
-        plt.show()

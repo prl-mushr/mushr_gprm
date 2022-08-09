@@ -295,25 +295,6 @@ def process_dubins(start, path, cost):
     return path, cost
 
 
-# BEGIN SOLUTION NO PROMPT
-def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
-    if isinstance(x, list) or isinstance(x, np.ndarray):
-        for (ix, iy, iyaw) in zip(x, y, yaw):
-            plot_arrow(ix, iy, iyaw)
-    else:
-        plt.arrow(
-            x,
-            y,
-            length * math.cos(yaw),
-            length * math.sin(yaw),
-            fc=fc,
-            ec=ec,
-            head_width=width,
-            head_length=width,
-        )
-        plt.plot(x, y)
-
-
 def main(show_animation=False):
     print("Dubins path planner sample start!!")
 
@@ -323,21 +304,7 @@ def main(show_animation=False):
 
     px, py, pyaw, clen = path_planning(start, end, curvature)
 
-    if show_animation:
-        plt.plot(px, py)
-
-        # plotting
-        plot_arrow(start[0], start[1], start[2], fc="r")
-        plot_arrow(end[0], end[1], end[2], fc="b")
-
-        plt.grid(True)
-        plt.axis("equal")
-        plt.show()
-        import IPython
-
-        IPython.embed()
-
 
 if __name__ == "__main__":
-    main(show_animation=True)
+    main()
 # END SOLUTION

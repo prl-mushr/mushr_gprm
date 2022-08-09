@@ -7,7 +7,7 @@
   <arg name="car_name" default="car" />
   <!-- <arg name="config_path" default="$(find mushr_gp)/config/config.yaml" /> -->
   <!-- <arg name="mprim_path" default="$(find mushr_gp)/mprim/mushr.mprim" /> -->
-  <arg name="num_vertices" default="400"/>
+  <arg name="num_vertices" default="800"/>
   <arg name="connection_radius" default="10.0"/>
   <arg name="curvature" default="1.0"/>
   <arg name="cache_roadmap" default="false"/>

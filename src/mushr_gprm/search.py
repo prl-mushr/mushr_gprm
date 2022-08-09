@@ -169,7 +169,6 @@ def shortcut_dense(rm, path, num_trials=100):
         edge, _ = rm.problem.steer(q1, q2)
         dense_path.append(edge)
     path = np.vstack(dense_path)
-    rm.visualize(path=path)
 
     for _ in range(num_trials):
         if len(path) == 2:
