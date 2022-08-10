@@ -134,45 +134,6 @@ class PlanarProblem(object):
         raise NotImplementedError
 
 
-class R2Problem(PlanarProblem):
-    def compute_heuristic(self, q1, q2):
-        """Compute the Euclidean distance between two states.
-
-        Args:
-            q1, q2: np.arrays with shape (N, 2)
-
-        Returns:
-            heuristic: cost estimate between two states
-        """
-        return np.linalg.norm(np.atleast_2d(q2) - np.atleast_2d(q1), axis=1)
-
-    def steer(self, q1, q2, resolution=None, interpolate_line=True):
-        """Return a straight-line path connecting two R^2 states.
-
-        Args:
-            q1, q2: np.arrays with shape 2
-            resolution: the space between waypoints in the resulting path
-            interpolate_line: whether to provide fine waypoint discretization
-             for line segments
-
-        Returns:
-            path: sequence of states between q1 and q2
-            length: length of local path
-        """
-        if resolution is None:
-            resolution = self.check_resolution
-        q1 = q1.reshape((1, -1))
-        q2 = q2.reshape((1, -1))
-        dist = np.linalg.norm(q2 - q1)
-        if not interpolate_line or dist < resolution:
-            return np.vstack((q1, q2)), dist
-        q1_toward_q2 = (q2 - q1) / dist
-        steps = np.hstack((np.arange(0, dist, resolution), np.array([dist]))).reshape(
-            (-1, 1)
-        )
-        return q1 + q1_toward_q2 * steps, dist
-
-
 class SE2Problem(PlanarProblem):
     def __init__(
         self, permissible_region, map_info=None, check_resolution=0.01, curvature=1.0

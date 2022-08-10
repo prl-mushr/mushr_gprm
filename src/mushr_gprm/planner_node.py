@@ -92,7 +92,7 @@ class PlannerROS:
             sampler,
             self.num_vertices,
             self.connection_radius,
-            lazy=True,
+            lazy=False,
             saveto=saveto,
         )
         load_time = time.time() - start_stamp
@@ -114,7 +114,7 @@ class PlannerROS:
             rospy.loginfo("Planning...")
             start_edges_evaluated = self.rm.edges_evaluated
             start_time = time.time()
-            path, _ = search.astar(self.rm, start_id, goal_id)
+            path = search.astar(self.rm, start_id, goal_id)
             end_time = time.time()
             edges_evaluated = self.rm.edges_evaluated - start_edges_evaluated
             rospy.loginfo("Path length: {}".format(self.rm.compute_path_length(path)))
