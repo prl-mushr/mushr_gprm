@@ -42,16 +42,13 @@ class PlanarProblem(object):
         """
         x = states[:, 0]
         y = states[:, 1]
-        valid = np.ones_like(x, dtype=bool)  # feel free to delete this line
-
         # Check that x and y are within the extents of the map.
-        # BEGIN SOLUTION "QUESTION 1.2"
-        xmin, xmax = self.extents[0, :]
-        ymin, ymax = self.extents[1, :]
-        within_x = (xmin <= x) & (x < xmax)
-        within_y = (ymin <= y) & (y < ymax)
-        valid = within_x & within_y
-        # END SOLUTION
+        valid = (
+            (x >= self.extents[0, 0])
+            & (x < self.extents[0, 1])
+            & (y >= self.extents[1, 0])
+            & (y < self.extents[1, 1])
+        )
 
         # The units of the state are meters and radians. We need to convert the
         # meters to pixels, in order to index into the permissible region. This
@@ -63,18 +60,9 @@ class PlanarProblem(object):
         # the corresponding entry of self.permissible_region. For simplicity,
         # we'll assume the robot is a point robot: just index directly with the
         # robot state x and y pixel indices into self.permissible_region.
-        #
-        # Hint: use the `astype` method to cast the x and y pixel positions into
-        # integers. Then, index into self.permissible_region, remembering that
-        # the zeroth dimension is the height.
-        # BEGIN SOLUTION "QUESTION 1.2"
-        # NumPy slicing creates a view rather than a copy,
-        # so y and x have been converted to pixel units
-        yind = y.astype(int)
-        xind = x.astype(int)
-        coll_free = self.permissible_region[yind[valid], xind[valid]]
-        valid[valid] = coll_free
-        # END SOLUTION
+        valid[valid] &= self.permissible_region[
+            y[valid].astype(int), x[valid].astype(int)
+        ]
 
         # Convert the units back from pixels to meters for the caller
         if self.map_info is not None:

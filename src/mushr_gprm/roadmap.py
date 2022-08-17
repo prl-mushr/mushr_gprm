@@ -14,7 +14,7 @@ import mushr_gprm.samplers as samplers
 
 class Roadmap(object):
     def __init__(
-        self, problem, sampler, num_vertices, connection_radius, lazy=False, saveto=None
+        self, problem, sampler, num_vertices, connection_radius, saveto=None
     ):
         """Construct a motion planning roadmap.
 
@@ -26,7 +26,6 @@ class Roadmap(object):
             sampler: a sampler (either a HaltonSampler, LatticeSampler, RandomSampler)
             num_vertices: desired number of vertices in the roadmap
             connection_radius: connection radius between vertices
-            lazy: whether the roadmap edges should be lazily collision-checked
             saveto: path to cached roadmap data
 
         """
@@ -34,7 +33,6 @@ class Roadmap(object):
         self.sampler = sampler
         self.num_vertices = num_vertices
         self.connection_radius = connection_radius
-        self.lazy = lazy
         self.saveto = saveto
 
         # R2 graph is undirected, SE3 graph is directed
@@ -46,7 +44,6 @@ class Roadmap(object):
         self.graph, self.vertices, self.weighted_edges = self.construct()
 
         # Print some graph summary statistics
-        print("Lazy:", self.lazy)
         print("Vertices:", self.num_vertices)
         print("Edges:", self.weighted_edges.shape[0])
 
@@ -78,26 +75,18 @@ class Roadmap(object):
             self.vertices[n1, :],
             self.vertices[n2, :],
         )
-
-    def check_weighted_edges_validity(self, weighted_edges):
-        """Collision check the edges in weighted_edges.
-
+    
+    def lazy_weight(self, n1, n2, edge):
+        """Collision check an edge. Used for lazy A* edge weighting.
+        
         Args:
-            weighted_edges: np.array of edges and edge lengths with shape
-                num_edges x 3, where each row is (u, v, length) and u, v are
-                node labels
-
+            n1, n2: (int): node labels
+        
         Returns:
-            weighted_edges: a subset of the original weighted_edges, where only
-                rows that correspond to collision-free edges are preserved
+            weight: cost of edge if it is collision free, otherwise infinity.
         """
-        # Hint: call the check_edge_validity method from above.
-        # BEGIN SOLUTION "QUESTION 1.3" ALT="raise NotImplementedError"
-        uv = weighted_edges[:, :2].astype(int)
-        free = np.array([self.check_edge_validity(u, v) for u, v in uv], dtype=bool)
-        weighted_edges = weighted_edges[free, :]
-        # END SOLUTION
-        return weighted_edges
+        free = self.check_edge_validity(n1, n2)
+        return edge["weight"] if free else np.inf
 
     def construct(self):
         """Construct the roadmap.
@@ -128,10 +117,6 @@ class Roadmap(object):
         # Compute the set of vertices and edges.
         self.vertices = self.sample_vertices()
         self.weighted_edges = self.connect_vertices(self.vertices)
-        if not self.lazy:
-            self.weighted_edges = self.check_weighted_edges_validity(
-                self.weighted_edges
-            )
 
         # Insert the vertices and edges into a NetworkX graph object
         if self.directed:
@@ -263,8 +248,6 @@ class Roadmap(object):
         self.graph.add_node(index, config=state)
         self.vertices = np.vstack([self.vertices, state.reshape((1, -1))])
         self.num_vertices += 1
-        if not self.lazy:
-            weighted_edges = self.check_weighted_edges_validity(weighted_edges)
         ebunch = [(int(u), int(v), float(w)) for u, v, w in weighted_edges]
         self.graph.add_weighted_edges_from(ebunch)
         self.weighted_edges = np.vstack([self.weighted_edges, weighted_edges])
@@ -299,3 +282,63 @@ class Roadmap(object):
             edge, _ = self.problem.steer(q1, q2)
             edges.append(edge)
         return np.vstack(edges)
+    
+    def visualize(self, show_edges=False, vpath=None, saveto=None):
+        """Visualize the roadmap.
+
+        Args:
+            show_edges: whether the roadmap's edges should be shown
+            vpath: sequence of vertex labels (or None)
+            saveto: path to save roadmap plot (or None)
+        """
+        plt.imshow(
+            self.problem.permissible_region,
+            cmap=plt.cm.gray,
+            aspect="equal",
+            interpolation="none",
+            vmin=0,
+            vmax=1,
+            origin="lower",
+            extent=self.problem.extents.ravel()[:4],
+        )
+
+        if show_edges:
+            edges = []
+            for u, v in self.graph.edges():
+                q1 = self.vertices[u, :]
+                q2 = self.vertices[v, :]
+                edge, _ = self.problem.steer(
+                    q1, q2, resolution=0.1, interpolate_line=False
+                )
+                edges.append(edge[:, :2])
+            edges = matplotlib.collections.LineCollection(
+                edges, colors="#dddddd", zorder=1
+            )
+            plt.gca().add_collection(edges)
+
+        if vpath is not None:
+            qpath = self.compute_qpath(vpath)
+            plt.plot(qpath[:, 0], qpath[:, 1], c="#0000ff", zorder=1)
+
+        plt.scatter(self.vertices[:, 0], self.vertices[:, 1], c="k", zorder=2)
+        if self.start is not None:
+            plt.scatter(
+                self.vertices[self.start, 0],
+                self.vertices[self.start, 1],
+                c="g",
+                zorder=3,
+            )
+        if self.goal is not None:
+            plt.scatter(
+                self.vertices[self.goal, 0],
+                self.vertices[self.goal, 1],
+                c="r",
+                zorder=3,
+            )
+        plt.xlim(self.problem.extents[0, :])
+        plt.ylim(self.problem.extents[1, :])
+
+        if saveto is not None:
+            plt.savefig(saveto, bbox_inches="tight")
+            print("Saved graph image to", saveto)
+        plt.show()
