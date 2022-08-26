@@ -11,7 +11,12 @@ def astar(rm, start, goal):
     Returns:
         vpath: a sequence of node labels, including the start and goal
     """
-    return nx.astar_path(rm.graph, start, goal, rm.heuristic, rm.lazy_weight)
+    path = nx.astar_path(rm.graph, start, goal, rm.heuristic, rm.lazy_weight)
+    for index in range(len(path) - 1):
+        if not rm.check_edge_validity(path[index], path[index + 1]).all():
+            raise nx.NetworkXNoPath("No path was found!")
+    return path
+
 
 
 def shortcut(rm, vpath):
