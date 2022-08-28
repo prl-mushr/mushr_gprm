@@ -3,6 +3,8 @@ authored by Atsushi Sakai (@Atsushi_twi).
 
 Modified by Aditya Vamsikrishna (adityavk), Gilwoo Lee (gilwoo), and Nick Walker
 (nswalker) for CSE 478.
+
+Modified for MuSHR open-source repository by Markus Schiffer (schifm2).
 """
 
 import math

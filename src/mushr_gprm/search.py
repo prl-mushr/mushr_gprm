@@ -1,4 +1,4 @@
-"""Wrapper for networkx astar."""
+"""Wrapper for networkx astar and greedy path shortcutting."""
 
 import networkx as nx
 
