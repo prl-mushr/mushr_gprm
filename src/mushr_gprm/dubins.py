@@ -5,6 +5,9 @@ Modified by Aditya Vamsikrishna (adityavk), Gilwoo Lee (gilwoo), and Nick Walker
 (nswalker) for CSE 478.
 
 Modified for MuSHR open-source repository by Markus Schiffer (schifm2).
+
+Copyright (c) 2019, The Personal Robotics Lab, The MuSHR Team, The Contributors of MuSHR
+License: BSD 3-Clause. See LICENSE.md file in root directory.
 """
 
 import math
@@ -52,11 +55,6 @@ def path_planning(start, end, curvature, resolution=0.1, interpolate_line=True):
     path[:, 2] += start[2]
     pi_2_pi(path[:, 2])
 
-    # Turn this back on if you see unnecessary rotations
-    # path, length = process_dubins(start, path, length)
-
-    # FIXME(nickswalker5-17-21): The dubins stuff is littered with this
-    # "scale by curvature." It can probably be refactored out
     real_path_length = length * 1 / curvature
     return path, real_path_length
 

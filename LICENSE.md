@@ -1,4 +1,4 @@
-Copyright (c) 2019, MuSHR/PRL/Whatever we choose
+Copyright (c) 2022, MuSHR/PRL/Whatever we choose
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
